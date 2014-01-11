@@ -1,7 +1,7 @@
 // My utility functions
 
 // Put it in your openscad library path and use with:
-// include<utils.scad>
+// include<Lenbok_Utils/utils.scad>
 
 
 fudge = 0.02;
