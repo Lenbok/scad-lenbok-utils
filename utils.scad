@@ -3,6 +3,10 @@
 // Put it in your openscad library path and use with:
 // include<Lenbok_Utils/utils.scad>
 
+// Example improved resolution control
+//$fa=1;
+//$fs=5; // Use for fast rendering
+//$fs=1; // Uncomment for export
 
 fudge = 0.02;
 
@@ -172,8 +176,8 @@ module standoffs(r1=defScrewHeadRad, r2=defScrewRad, r3 = 1.5, h1=defScrewHeadDe
  */
 module slot2d(r = 3, l = 20) {
     hull() {
-        translate([-l / 2, 0, 0]) circle(r = r);
-        translate([l / 2, 0, 0]) circle(r = r);
+        translate([-l / 2, 0, 0]) polyhole2d(r = r);
+        translate([l / 2, 0, 0]) polyhole2d(r = r);
     }
     //cube([l, 2 * r, h], center = true);
 }
@@ -197,11 +201,7 @@ module slot(r = 3, h = 5, l = 20) {
  */
 module roundedcube(size, r = 1, center = false) {
     //#cube(size, center = center);
-    if (center == false) {
-        linear_extrude(height = size[2]) roundedsquare(size, r, center = false);
-    } else {
-        translate([0, 0, -size[2] / 2]) linear_extrude(height = size[2]) roundedsquare(size, r, center = true);
-    }
+    translate(center ? [0, 0, -size[2] / 2] : 0) linear_extrude(height = size[2]) roundedsquare(size, r, center = center);
 }
 
 /**
@@ -213,24 +213,9 @@ module roundedcube(size, r = 1, center = false) {
 module roundedcube3(size, r = 1, center = false) {
     //#cube(size, center = center);
     minkowski() {
-        if (center == false) {
-            translate([r, r, r]) cube([size[0] - 2 * r, size[1] - 2 * r, size[2] - 2 * r], center = false);
-        } else {
-            cube([size[0] - 2 * r, size[1] - 2 * r, size[2] - 2 * r], center = true);
-        }
+        translate(center ? 0 : [r, r, r]) cube([size[0] - 2 * r, size[1] - 2 * r, size[2] - 2 * r], center = center);
         sphere(r = r);
     }
-    /* Doesn't handle center
-    hull() {
-        for (x = [0:1]) {
-            for (y = [0:1]) {
-                for (z = [0:1]) {
-                    translate([r + (size[0] - 2 * r) * x, r + (size[1] - 2 * r) * y, r + (size[2] - 2 * r) * z]) sphere(r = r);
-                }
-            }
-        }
-    }
-    */
 }
 /**
  * Make a square which has rounded corners
@@ -241,11 +226,7 @@ module roundedcube3(size, r = 1, center = false) {
 module roundedsquare(size, r = 1, center = false) {
     //#square(size, center = center);
     minkowski() {
-        if (center == false) {
-            translate([r, r]) square([size[0] - 2 * r, size[1] - 2 * r], center = false);
-        } else {
-            square([size[0] - 2 * r, size[1] - 2 * r], center = true);
-        }
+        translate(center ? 0 : [r, r]) square([size[0] - 2 * r, size[1] - 2 * r], center = center);
         circle(r = r);
     }
 }
