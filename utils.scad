@@ -28,8 +28,8 @@ module polyhole2d(r) {
     n = max(round(4 * r),3);
     rotate([0,0,180]) circle(r = r / cos (180 / n), $fn = n);
 }
-module polyhole(r, h) {
-    linear_extrude(height = h) polyhole2d(r);
+module polyhole(r, h, center=false) {
+    translate(center ? [0, 0, -h / 2] : 0) linear_extrude(height = h) polyhole2d(r);
 }
 
 module test_polyhole(){
@@ -212,9 +212,17 @@ module roundedcube(size, r = 1, center = false) {
  */
 module roundedcube3(size, r = 1, center = false) {
     //#cube(size, center = center);
-    minkowski() {
-        translate(center ? 0 : [r, r, r]) cube([size[0] - 2 * r, size[1] - 2 * r, size[2] - 2 * r], center = center);
-        sphere(r = r);
+    if (0) {
+        minkowski() {
+            translate(center ? 0 : [r, r, r]) cube([size[0] - 2 * r, size[1] - 2 * r, size[2] - 2 * r], center = center);
+            sphere(r = r);
+        }
+    } else {
+        translate(center ? 0 : [size[0]/2, size[1]/2, size[2]/2]) hull() {
+            for(x=[-1, 1], y=[-1, 1], z=[-1,1]) {
+                translate(center ? 0 : [x* (size[0] / 2 - r), y * (size[1] / 2 - r), z * (size[2] / 2 - r)]) sphere(r = r);
+            }
+        }
     }
 }
 /**
@@ -247,7 +255,7 @@ module wedge(r = 7, a = 225) {
     if (a > 180) {
         difference() {
             circle(r = r);
-            rotate([0,0,a]) wedge(r = r +0.1, a = 360 - a);
+            rotate([0,0,a]) wedge(r = r * 1.1, a = 360 - a);
         }
     }
 }
@@ -276,10 +284,15 @@ module box(size = [10, 5, 5], thickness = 1) {
  * Make a thin-walled circle.
  * @param r outside radius
  * @param thickness wall thickness
+ * @param a angle of ring, if only a segment of ring is required
  */
-module ring(r = 5, thickness = 1) {
+module ring(r = 5, thickness = 1, a = 360) {
     difference() {
-        circle(r);
+        if (a < 360) {
+            wedge(r = r, a = a);
+        } else { 
+            circle(r);
+        }
         polyhole2d(r - thickness);
     }
 }
@@ -289,9 +302,10 @@ module ring(r = 5, thickness = 1) {
  * @param r outside radius
  * @param h height of tube
  * @param thickness wall thickness
+ * @param a angle of ring, if only a segment of ring is required
  */
-module tube(r = 5, h = 5, thickness = 1) {
-    linear_extrude(height = h) ring(r, thickness);
+module tube(r = 5, h = 5, thickness = 1, a = 360, center = false) {
+    translate(center ? [0, 0, -h / 2] : 0) linear_extrude(height = h) ring(r, thickness, a);
 }
 
 /**
@@ -344,6 +358,7 @@ module cliplid(size, thickness = 3, cliplength = 10, clipdepth = 3, r = 5) {
 
 module utildemo() {
     translate([5,5]) roundedcube(size=[40,20,10], r=3);
+    translate([5,35]) roundedcube3(size=[40,20,10], r=3);
     translate([5,-25,0]) roundedsquare(size=[40,20], r=3);
     translate([-20,5,0]) slot();
     translate([-20,15,0]) wedge();
