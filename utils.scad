@@ -11,38 +11,38 @@
 fudge = 0.02;
 
 // Some default screw characteristics - for M3 screws
-defScrewRad=3.5/2;
-defScrewDepth=10;
-defScrewHeadRad=6/2;
-defScrewHeadDepth=3.5;
+defScrewRad = 3.5/2;
+defScrewDepth = 10;
+defScrewHeadRad = 6/2;
+defScrewHeadDepth = 3.5;
 
-defLayer=0.3; // default layer thickness
-tolerance=0.5;
+defLayer = 0.25; // default layer thickness
+tolerance = 0.5;
 
 /** Calculates length of hypotenuse according to pythagoras theorum */
-function pythag(x, y)=sqrt(x*x+y*y);
+function pythag(x, y) = sqrt(x * x + y * y);
 
 // Copyright 2011 Nophead (of RepRap fame)
 // Using this holes should come out approximately right when printed
 module polyhole2d(r) {
-    n = max(round(4 * r),3);
-    rotate([0,0,180]) circle(r = r / cos (180 / n), $fn = n);
+    n = max(round(4 * r), 3);
+    rotate([0, 0, 180]) circle(r = r / cos (180 / n), $fn = n);
 }
-module polyhole(r, h, center=false) {
+module polyhole(r, h, center = false) {
     translate(center ? [0, 0, -h / 2] : 0) linear_extrude(height = h) polyhole2d(r);
 }
 
 module test_polyhole(){
     difference() {
-	cube(size = [100,27,3]);
+	cube(size = [100, 27, 3]);
         union() {
     	    for(i = [1:10]) {
-                translate([(i * i + i)/2 + 3 * i , 8,-1])
-                polyhole(h = 5, r = i/2);
+                translate([(i * i + i) / 2 + 3 * i, 8, -1])
+                polyhole(h = 5, r = i / 2);
                 
                 assign(d = i + 0.5)
-                translate([(d * d + d)/2 + 3 * d, 19,-1])
-                polyhole(h = 5, r = d/2);
+                translate([(d * d + d) / 2 + 3 * d, 19, -1])
+                polyhole(h = 5, r = d / 2);
     	    }
         }
     }
@@ -54,12 +54,12 @@ module test_polyhole(){
  * @param rHeight the radius of the height
  */
 module oval(rWidth = 20, rHeight = 10) {
-    scale([1,rHeight/rWidth,1]) circle(r=rWidth);
+    scale([1, rHeight / rWidth, 1]) circle(r = rWidth);
 }
 
 
 /** 
- * Displays the current build volume of my mendel
+ * Displays the current build volume of my original mendel
  */
 module mendelBuildVolume() {
     %translate([-90, -80, 0]) cube([90+101,160,55]);
@@ -68,12 +68,13 @@ module mendelBuildVolume() {
 
 /**
  * Take the convex hull of successive pairs of children
+ * @children shapes to successively connect
  */
 module hullchain() {
     for (i = [0:$children - 2]) {
         hull() {
-            child(i);
-            child(i + 1);
+            children(i);
+            children(i + 1);
         }
     }
 }
@@ -94,30 +95,15 @@ module countersink(r1=defScrewHeadRad, r2=defScrewRad, h1=defScrewHeadDepth, h2=
 
 /**
  * Make an object suitable for creating a hole for a regular screw.
- * @param r1 head (narrowest) radius
- * @param r2 screw (widest) radius
+ * @param r1 head (widest) radius
+ * @param r2 screw (narrowest) radius
  * @param h1 depth of screw 
  * @param h2 depth of screw head (i.e. total length = h1+h2)
+ * @param membrane set this to layer thickness to leave a one-layer membrane to be removed after printing
  */
-module bolthole(r1=defScrewHeadRad, r2=defScrewRad, h1=defScrewHeadDepth, h2=defScrewDepth) {
-    polyhole(r = r1, h = h1 + fudge);
-    translate([0, 0, h1]) polyhole(r = r2, h = h2);
-}
-
-/**
- * Make a single mounting standoff.
- * @param r1 head (narrowest) radius
- * @param r2 screw (widest) radius
- * @param r3 standoff thickness
- * @param h1 depth of screw
- * @param h2 depth of screw head to end (i.e. total length = h1+h2)
- */
-module standoffneg(r1 = defScrewHeadRad, r2 = defScrewRad, r3 = 1.5, h1 = defScrewHeadDepth, h2 = defScrewDepth) {
-    difference() {
-        translate([0,0,-fudge]) bolthole(r1 = r1, r2 = r2, h1 = h1 + fudge, h2 = h2 + fudge);
-        translate([0, 0, h1]) cylinder(r = r1 + r3, h = defLayer);
-    }
-    //cylinder(r = r3, h = h1 + h2);
+module bolthole(r1=defScrewHeadRad, r2=defScrewRad, h1=defScrewHeadDepth, h2=defScrewDepth, membrane=-fudge) {
+    polyhole(r = r1, h = h1 - membrane / 2);
+    translate([0, 0, h1 + membrane / 2]) polyhole(r = r2, h = h2 - membrane / 2);
 }
 
 module standoffpos(r1 = defScrewHeadRad, r2 = defScrewRad, r3 = 1.5, h1 = defScrewHeadDepth, h2 = defScrewDepth) {
@@ -127,8 +113,8 @@ module standoffpos(r1 = defScrewHeadRad, r2 = defScrewRad, r3 = 1.5, h1 = defScr
 
 /**
  * Make a set of standoffs for mounting a board.
- * @param r1 head (narrowest) radius
- * @param r2 screw (widest) radius
+ * @param r1 head (widest) radius
+ * @param r2 screw (narrowest) radius
  * @param r3 standoff thickness
  * @param h1 depth of screw
  * @param h2 depth of screw head to end (i.e. total length = h1+h2)
@@ -147,8 +133,8 @@ module standoffspos(r1 = defScrewHeadRad, r2 = defScrewRad, r3 = 1.5, h1 = defSc
 }
 /**
  * Make a set of standoffs for mounting a board.
- * @param r1 head (narrowest) radius
- * @param r2 screw (widest) radius
+ * @param r1 head (widest) radius
+ * @param r2 screw (narrowest) radius
  * @param r3 standoff thickness
  * @param h1 depth of screw
  * @param h2 depth of screw head to end (i.e. total length = h1+h2)
@@ -158,7 +144,7 @@ module standoffspos(r1 = defScrewHeadRad, r2 = defScrewRad, r3 = 1.5, h1 = defSc
 module standoffsneg(r1=defScrewHeadRad, r2=defScrewRad, r3 = 1.5, h1=defScrewHeadDepth, h2=defScrewDepth, x = 20, y = 20) {
     for (xi = [-0.5:0.5]) {
         for (yi = [-0.5:0.5]) {
-            translate([xi * x, yi * y, 0]) standoffneg(r1 = r1, r2 = r2, r3 = r3, h1 = h1, h2 = h2, l = defLayer);
+            translate([xi * x, yi * y, -fudge]) bolthole(r1 = r1, r2 = r2, h1 = h1 + fudge, h2 = h2 + fudge, membrane = defLayer);
         }
     }
 }
@@ -220,11 +206,36 @@ module roundedcube3(size, r = 1, center = false) {
     } else {
         translate(center ? 0 : [size[0]/2, size[1]/2, size[2]/2]) hull() {
             for(x=[-1, 1], y=[-1, 1], z=[-1,1]) {
-                translate(center ? 0 : [x* (size[0] / 2 - r), y * (size[1] / 2 - r), z * (size[2] / 2 - r)]) sphere(r = r);
+                translate([x* (size[0] / 2 - r), y * (size[1] / 2 - r), z * (size[2] / 2 - r)]) sphere(r = r);
             }
         }
     }
 }
+
+module double_cone(r = 1, faces = [true, true]) {
+    if (faces[0]) {
+        cylinder(r1 = 0, r2 = r, h = r);
+    }
+    if (faces[1]) {
+        translate([0, 0, r - fudge]) cylinder(r1 = r, r2 = 0, h = r);
+    }
+}
+
+/**
+ * Like linear_extrude, but with a chamfer of specified height at the top and bottom.
+ * @param height total extruded height
+ * @param chamfer height of chamfer
+ * @faces vector for whether to chamfer the bottom / top, respectively
+ * @children 2d shape to extrude
+ */
+module chamfer_extrude(height = 10, chamfer = 1, faces = [true, true]) {
+    total_chamfer = (faces[0] ? chamfer : 0) + (faces[1] ? chamfer : 0);
+    translate([0, 0, faces[0] ? 0 : -chamfer]) minkowski() {
+        linear_extrude(height = height - total_chamfer) offset(delta = -chamfer) children();
+        double_cone(r = chamfer, faces = faces);
+    }
+}
+
 /**
  * Make a square which has rounded corners
  * @param size vector containing cube dimensions
@@ -297,6 +308,38 @@ module ring(r = 5, thickness = 1, a = 360) {
     }
 }
 
+
+// These functions for barbell by Greg Frost
+function triangulate(point1, point2, length1, length2) = point1 + length1 * rotated(atan2(point2[1] - point1[1], point2[0] - point1[0]) + angle(distance(point1, point2), length1, length2));
+function distance(point1, point2) = norm(point2 - point1);
+function angle(a, b, c) = acos((a * a + b * b - c * c) / (2 * a * b)); 
+function rotated(a) = [cos(a), sin(a), 0];
+/**
+ * Make a 2d barbell shape
+ * @param x1 2d position of first ball
+ * @param x2 2d position of second ball
+ * @param r1 radius of first ball 
+ * @param r2 radius of second ball 
+ * @param r3 radius of top subtracted sculpt
+ * @param r4 radius of bottom subtracted sculpt
+ */
+module barbell(x1, x2, r1, r2, r3, r4) {
+    x3 = triangulate(x1, x2, r1 + r3, r2 + r3);
+    x4 = triangulate(x2, x1, r2 + r4, r1 + r4);
+    render() difference() {
+        union() {
+            translate(x1) circle(r = r1);
+            translate(x2) circle(r = r2);
+            polygon(points = [x1, x3, x2, x4]);
+        }
+        
+        translate(x3) circle(r = r3, $fa=5);
+        translate(x4) circle(r = r4, $fa=5);
+    }
+}
+
+
+
 /**
  * Make a thin-walled cylindrical tube.
  * @param r outside radius
@@ -357,12 +400,14 @@ module cliplid(size, thickness = 3, cliplength = 10, clipdepth = 3, r = 5) {
 
 
 module utildemo() {
-    translate([5,5]) roundedcube(size=[40,20,10], r=3);
-    translate([5,35]) roundedcube3(size=[40,20,10], r=3);
-    translate([5,-25,0]) roundedsquare(size=[40,20], r=3);
+    translate([5,5]) roundedcube(size=[40,15,10], r=3, $fn = 16);
+    translate([5,25]) roundedcube3(size=[40,15,10], r=3, $fn = 16);
+    translate([5,-15,0]) chamfer_extrude(height = 10, chamfer = 2, $fn = 16) square(size=[40,15]);
+    translate([45,-15,0]) chamfer_extrude(height = 10, chamfer = 2, faces = [true, false], $fn = 16) square(size=[40,15]);
+    translate([5,-35,0]) roundedsquare(size=[40,15], r=3);
     translate([-20,5,0]) slot();
     translate([-20,15,0]) wedge();
-    translate([-10,-15,0]) bolthole();
+    translate([-10,-15,0]) bolthole(membrane=defLayer);
     translate([-20,-15,0]) countersink();
     translate([-10,-25,0]) box2d();
     translate([-20,-25,0]) ring();
@@ -370,5 +415,5 @@ module utildemo() {
     translate([-20,-35,0]) tube();
     translate([-55,-30,0]) standoffs();
 }
-//utildemo();
+utildemo();
 //test_polyhole();
