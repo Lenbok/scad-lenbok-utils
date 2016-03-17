@@ -12,7 +12,7 @@ fudge = 0.02;
 
 // Some default screw characteristics - for M3 screws
 defScrewRad = 3.5/2;
-defScrewDepth = 10;
+defScrewDepth = 5;
 defScrewHeadRad = 6/2;
 defScrewHeadDepth = 3.5;
 
@@ -21,6 +21,9 @@ tolerance = 0.5;
 
 /** Calculates length of hypotenuse according to pythagoras theorum */
 function pythag(x, y) = sqrt(x * x + y * y);
+
+/** Converts a vector to unit length */
+function unit_vector(v) = v / norm(v);
 
 // Copyright 2011 Nophead (of RepRap fame)
 // Using this holes should come out approximately right when printed
@@ -46,6 +49,88 @@ module test_polyhole(){
     	    }
         }
     }
+}
+
+/**
+ * Reorients children with respect to the given vector
+ * @param v the vector
+ * @param a the assumed current origin vector (default Z axis)
+ */
+module orient(v, a = [0, 0, 1], roll = 0) {
+    angle = acos((a * v) / (norm(a) *norm(v)));
+    rotate(a = angle, v = cross(a, v))
+        rotate([0, 0, roll])
+        children();
+}
+
+/**
+ * Projection from 3d children to 2d along a plane defined by a vector
+ * @param v the vector
+ */
+module projection_plane(v, roll = 0) {
+    projection(cut = true) orient(v, roll = roll) translate(-v) children();
+}
+
+/**
+ * Perform a difference between the children and the plane
+ * defined by the supplied vector.
+ * @param v the vector
+ * @param near if true, keep the side closest to the origin, if false, keep the side away from the origin
+ */
+module difference_plane(v, near = true) {
+    huge = 10000; // Too large gives preview artifacts
+    offset = near ? huge / 2 : -huge / 2;
+    translate(v) orient(v, roll = 180) difference() {
+        orient(v, roll = 180) translate(-v) children();
+        translate([0, 0, offset]) cube([huge, huge, huge], center = true);
+    }
+}
+
+/**
+ * Produce a slice defined by the projection along a plane, expanded to the specified width.
+ * @param v the vector defining the plane
+ * @param thickness the thickness of the slice to create
+ */
+module slice(v, thickness = 2) {
+    translate(v) orient(v, roll = 180) difference() {
+        translate([0, 0, -thickness / 2]) linear_extrude(height = thickness) projection_plane(v, roll = 180) children();
+    }
+}
+
+/**
+ * Remove a slice of an object along a plane.
+ * @param v the vector defining the plane
+ * @param thickness the thickness of the slice to remove
+ * @param rejoin if true, re-join the parts
+ */
+module remove_slice(v, thickness = 2, rejoin = false) {
+    fudge = 0.01; // allow some overlap to avoid coincident faces
+    shift = rejoin ? unit_vector(v) * (thickness / 2 + fudge) : 0;
+    v1 = v - unit_vector(v) * thickness / 2;
+    v2 = v + unit_vector(v) * thickness / 2;
+    s2 = v * v2 >= 0 ? 1 : -1;
+    translate(shift) difference_plane(v1, near = v * v1 >= 0) children();
+    translate(-shift) difference_plane(v2 * s2, near = v * v2 <= 0) children();
+}
+
+/**
+ * insert a slice of an object along a plane and re-join the parts.
+ * @param v the vector defining the plane
+ * @param thickness the thickness of the slice to remove
+ */
+module insert_slice(v, thickness = 2) {
+    fudge = 0.01; // allow some overlap to avoid coincident faces
+    shift = unit_vector(v) * (thickness / 2 - fudge);
+    translate(-shift) difference_plane(v, near = true) children();
+    slice(v, thickness = thickness) children();
+    translate(shift) difference_plane(v, near = false) children();
+}
+
+/**
+ * Example: centerxy(cubesize) cube(cubesize, center = false);
+ */
+module centerxy(size = [0, 0]) {
+    translate([-size[0] / 2, -size[1] / 2, 0]) children();
 }
 
 /**
@@ -111,6 +196,10 @@ module standoffpos(r1 = defScrewHeadRad, r2 = defScrewRad, r3 = 1.5, h1 = defScr
     translate([0, 0, h1]) cylinder(r1 = r1 + r3, r2 = r2 + r3,  h = h2);
 }
 
+module standoffneg(r1 = defScrewHeadRad, r2 = defScrewRad, r3 = 1.5, h1 = defScrewHeadDepth, h2 = defScrewDepth) {
+    #translate([0, 0, -fudge]) bolthole(r1 = r1, r2 = r2, h1 = h1 + fudge, h2 = h2 + fudge, membrane = defLayer);
+}
+
 /**
  * Make a set of standoffs for mounting a board.
  * @param r1 head (widest) radius
@@ -125,8 +214,7 @@ module standoffspos(r1 = defScrewHeadRad, r2 = defScrewRad, r3 = 1.5, h1 = defSc
     for (xi = [-0.5:0.5]) {
         for (yi = [-0.5:0.5]) {
             translate([xi * x, yi * y, 0]) {
-                cylinder(r = r1 + r3, h = h1);
-                translate([0, 0, h1]) cylinder(r1 = r1 + r3, r2 = r2 + r3,  h = h2);
+                standoffpos(r1, r2, r3, h1, h2);
             }
         }
     }
@@ -144,7 +232,7 @@ module standoffspos(r1 = defScrewHeadRad, r2 = defScrewRad, r3 = 1.5, h1 = defSc
 module standoffsneg(r1=defScrewHeadRad, r2=defScrewRad, r3 = 1.5, h1=defScrewHeadDepth, h2=defScrewDepth, x = 20, y = 20) {
     for (xi = [-0.5:0.5]) {
         for (yi = [-0.5:0.5]) {
-            translate([xi * x, yi * y, -fudge]) bolthole(r1 = r1, r2 = r2, h1 = h1 + fudge, h2 = h2 + fudge, membrane = defLayer);
+            translate([xi * x, yi * y, 0]) standoffneg(r1, r2, r3, h1, h2);
         }
     }
 }
@@ -339,6 +427,58 @@ module barbell(x1, x2, r1, r2, r3, r4) {
 }
 
 
+// Make a rectangular grid of bars, centered around the origin, used by grill
+module bars(thickness = 1.25, gap = 1.75, angle = 0, size = [40, 40]) {
+    repeat = thickness + gap;
+    //# square(size, center = true);
+    numbars = ceil(size[1] / 2 / repeat);
+    rotate([0, 0, angle]) for (y = [-numbars * repeat - thickness / 2 : repeat : repeat * numbars]) {
+        translate([-size[0] / 2, y]) square([size[0], thickness]);
+    }
+}
+
+// Make a rectangular grid of hexes, centered around the origin, used by grill
+module hexes(r = 2, thickness = 1, size = [40, 40]) {
+    cellHeight = r * sin(60);
+    cellSideLength = r * cos(60) * 2;
+    horizThickness = r - cellSideLength / 2;
+    //echo(str("r=",r," t=",thickness," ch=",cellHeight," cs=",cellSideLength," ht=",horizThickness));
+    difference() {
+        square(size, center = true);
+        for (x = [-size[0] / 2 : (r + horizThickness) * 2: size[0] / 2 + r]) {
+            for (y = [-size[1] / 2 : cellHeight * 2 : size[1] / 2 + r]) {
+                translate([x, y]) circle(r = r - thickness/2, $fn=6);
+                translate([x + r + horizThickness, y + cellHeight]) circle(r = r - thickness/2, $fn=6);
+            }
+        }
+    }
+}
+
+/**
+ * Cut a grill out of a 2d shape.
+ * @param delta the width of the margin around the edges of the shape that will not be grilled
+ * @param thickness the wall thickness of the grill structure
+ * @param angle if set, rotate the grill pattern by this amount
+ * @param type the grill type, either "bar" or "hex"
+ * @param bounds the maximum size of the child being processed
+ * @param offset the offset from origin to center of the child
+ * @param center true if the child is centered on the origin
+ * @children 2d shape to install a grill into
+ */
+module grill(delta = 3, thickness = 1, angle = 0, type = "bar", bounds = [50, 50], offset = [0, 0], gap = 1.5, r = 3) {
+    bounds2 = [max(bounds[0], bounds[1]), max(bounds[0], bounds[1])] * 1.4; // Handle worst case rotation angle
+    difference() {
+        children();
+        difference() {
+            offset(delta = -delta) children();
+            translate(offset) if (type == "bar") {
+                bars(thickness = thickness, gap = gap, angle = angle, size = bounds2);
+            } else {
+                hexes(thickness = thickness, r = r, size = bounds);
+            }
+        }
+    }
+}
 
 /**
  * Make a thin-walled cylindrical tube.
