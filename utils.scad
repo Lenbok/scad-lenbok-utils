@@ -1,7 +1,7 @@
 // My utility functions
 
 // Put it in your openscad library path and use with:
-// include<Lenbok_Utils/utils.scad>
+// use<Lenbok_Utils/utils.scad>
 
 // Example improved resolution control
 //$fa=1;
@@ -24,6 +24,12 @@ function pythag(x, y) = sqrt(x * x + y * y);
 
 /** Converts a vector to unit length */
 function unit_vector(v) = v / norm(v);
+
+/** Length of apothem given radius and number of sides */
+function apothem(r, n = 6) = r * cos(180/n);
+
+/** Length of radius given apothem and number of sides */
+function inv_apothem(a, n = 6) = a / cos(180/n);
 
 // Copyright 2011 Nophead (of RepRap fame)
 // Using this holes should come out approximately right when printed
@@ -246,7 +252,7 @@ module standoffs(r1=defScrewHeadRad, r2=defScrewRad, r3 = 1.5, h1=defScrewHeadDe
 /**
  * Make a slot with rounded ends.
  * @param r radius of slot
- * @param l length of slot
+ * @param l length of slot, not including radius
  */
 module slot2d(r = 3, l = 20) {
     hull() {
@@ -260,7 +266,7 @@ module slot2d(r = 3, l = 20) {
  * Make a slot with rounded ends.
  * @param r radius of slot
  * @param h height of slot
- * @param l length of slot
+ * @param l length of slot, not including radius
  */
 module slot(r = 3, h = 5, l = 20) {
     translate([0, 0, -h/2]) linear_extrude(height = h) slot2d(r, l);
@@ -320,7 +326,7 @@ module chamfer_extrude(height = 10, chamfer = 1, faces = [true, true]) {
     total_chamfer = (faces[0] ? chamfer : 0) + (faces[1] ? chamfer : 0);
     translate([0, 0, faces[0] ? 0 : -chamfer]) minkowski() {
         linear_extrude(height = height - total_chamfer) offset(delta = -chamfer) children();
-        double_cone(r = chamfer, faces = faces);
+        double_cone(r = chamfer, faces = faces, $fs = 0.2);
     }
 }
 
@@ -483,7 +489,7 @@ module grill(delta = 3, thickness = 1, angle = 0, type = "bar", bounds = [50, 50
 /**
  * Make a thin-walled cylindrical tube.
  * @param r outside radius
- * @param h height of tube
+ * @param h height of tubes
  * @param thickness wall thickness
  * @param a angle of ring, if only a segment of ring is required
  */
