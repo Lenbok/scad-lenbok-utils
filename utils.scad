@@ -306,12 +306,12 @@ module roundedcube3(size, r = 1, center = false) {
     }
 }
 
-module double_cone(r = 1, faces = [true, true]) {
+module double_cone(h = 1, r = 1, faces = [true, true]) {
     if (faces[0]) {
-        cylinder(r1 = 0, r2 = r, h = r);
+        cylinder(r1 = 0, r2 = r, h = h);
     }
     if (faces[1]) {
-        translate([0, 0, r - fudge]) cylinder(r1 = r, r2 = 0, h = r);
+        translate([0, 0, h - fudge]) cylinder(r1 = r, r2 = 0, h = h);
     }
 }
 
@@ -319,14 +319,16 @@ module double_cone(r = 1, faces = [true, true]) {
  * Like linear_extrude, but with a chamfer of specified height at the top and bottom.
  * @param height total extruded height
  * @param chamfer height of chamfer
+ * @param width (optional) width of chamfer, if different from chamfer height
  * @faces vector for whether to chamfer the bottom / top, respectively
  * @children 2d shape to extrude
  */
-module chamfer_extrude(height = 10, chamfer = 1, faces = [true, true]) {
+module chamfer_extrude(height = 10, chamfer = 1, width, faces = [true, true]) {
+    chamfer_r = width == undef ? chamfer : width;
     total_chamfer = (faces[0] ? chamfer : 0) + (faces[1] ? chamfer : 0);
     translate([0, 0, faces[0] ? 0 : -chamfer]) minkowski() {
-        linear_extrude(height = height - total_chamfer) offset(delta = -chamfer) children();
-        double_cone(r = chamfer, faces = faces, $fs = 0.2);
+        linear_extrude(height = height - total_chamfer) offset(delta = -chamfer_r) children();
+        double_cone(h = chamfer, r = chamfer_r, faces = faces, $fs = 0.2);
     }
 }
 
