@@ -31,6 +31,23 @@ function apothem(r, n = 6) = r * cos(180/n);
 /** Length of radius given apothem and number of sides */
 function inv_apothem(a, n = 6) = a / cos(180/n);
 
+/** From the OpenSCAD wiki. */
+function sublist(list, from=0, to) =
+    from > to
+    ? []
+    : let(end = to==undef ? len(list) - 1 : to)
+        [for(i = [from : end]) list[i]];
+
+/** From the OpenSCAD wiki. */
+module fillet(r = 1) {
+    offset(r = -r) offset(delta = r) children();
+}
+
+/** From the OpenSCAD wiki. */
+module round(r = 1) {
+    offset(r = r) offset(delta = -r) children();
+}
+
 // Copyright 2011 Nophead (of RepRap fame)
 // Using this holes should come out approximately right when printed
 module polyhole2d(r) {
