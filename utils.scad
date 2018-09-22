@@ -340,12 +340,16 @@ module double_cone(h = 1, r = 1, faces = [true, true]) {
  * @faces vector for whether to chamfer the bottom / top, respectively
  * @children 2d shape to extrude
  */
-module chamfer_extrude(height = 10, chamfer = 1, width, faces = [true, true]) {
+module chamfer_extrude(height = 10, chamfer = 1, width, faces = [true, true], convexity = 3) {
     chamfer_r = width == undef ? chamfer : width;
-    total_chamfer = (faces[0] ? chamfer : 0) + (faces[1] ? chamfer : 0);
-    translate([0, 0, faces[0] ? 0 : -chamfer]) minkowski() {
-        linear_extrude(height = height - total_chamfer) offset(delta = -chamfer_r) children();
-        double_cone(h = chamfer, r = chamfer_r, faces = faces, $fs = 0.2);
+    if (faces[0] || faces[1]) {
+        total_chamfer = (faces[0] ? chamfer : 0) + (faces[1] ? chamfer : 0);
+        translate([0, 0, faces[0] ? 0 : -chamfer]) minkowski() {
+            linear_extrude(height = height - total_chamfer, convexity = convexity) offset(delta = -chamfer_r) children();
+            double_cone(h = chamfer, r = chamfer_r, faces = faces, $fs = 0.2);
+        }
+    } else {
+        linear_extrude(height = height, convexity = convexity) children();
     }
 }
 
