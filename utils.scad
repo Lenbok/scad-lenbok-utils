@@ -55,7 +55,7 @@ module polyhole2d(r) {
     rotate([0, 0, 180]) circle(r = r / cos (180 / n), $fn = n);
 }
 module polyhole(r, h, center = false) {
-    translate(center ? [0, 0, -h / 2] : 0) linear_extrude(height = h) polyhole2d(r);
+    translate(center ? [0, 0, -h / 2] : [0, 0, 0]) linear_extrude(height = h) polyhole2d(r);
 }
 
 module test_polyhole(){
@@ -362,7 +362,7 @@ module chamfer_extrude(height = 10, chamfer = 1, width, faces = [true, true], co
 module roundedsquare(size, r = 1, center = false) {
     //#square(size, center = center);
     minkowski() {
-        translate(center ? 0 : [r, r]) square([size[0] - 2 * r, size[1] - 2 * r], center = center);
+        translate(center ? [0, 0, 0] : [r, r]) square([size[0] - 2 * r, size[1] - 2 * r], center = center);
         circle(r = r);
     }
 }
