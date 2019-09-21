@@ -220,7 +220,7 @@ module standoffpos(r1 = defScrewHeadRad, r2 = defScrewRad, r3 = 1.5, h1 = defScr
 }
 
 module standoffneg(r1 = defScrewHeadRad, r2 = defScrewRad, r3 = 1.5, h1 = defScrewHeadDepth, h2 = defScrewDepth) {
-    #translate([0, 0, -fudge]) bolthole(r1 = r1, r2 = r2, h1 = h1 + fudge, h2 = h2 + fudge, membrane = defLayer);
+    translate([0, 0, -fudge]) bolthole(r1 = r1, r2 = r2, h1 = h1 + fudge, h2 = h2 + fudge, membrane = defLayer);
 }
 
 /**
@@ -298,7 +298,7 @@ module slot(r = 3, h = 5, l = 20) {
  */
 module roundedcube(size, r = 1, center = false) {
     //#cube(size, center = center);
-    translate(center ? [0, 0, -size[2] / 2] : 0) linear_extrude(height = size[2]) roundedsquare(size, r, center = center);
+    translate([0, 0, center ? -size[2] / 2 : 0]) linear_extrude(height = size[2]) roundedsquare(size, r, center = center);
 }
 
 /**
@@ -517,7 +517,7 @@ module grill(delta = 3, thickness = 1, angle = 0, type = "bar", bounds = [50, 50
  * @param a angle of ring, if only a segment of ring is required
  */
 module tube(r = 5, h = 5, thickness = 1, a = 360, center = false) {
-    translate(center ? [0, 0, -h / 2] : 0) linear_extrude(height = h) ring(r, thickness, a);
+    translate([0, 0, center ? -h / 2 : 0]) linear_extrude(height = h) ring(r, thickness, a);
 }
 
 /**
