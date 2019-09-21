@@ -484,6 +484,29 @@ module hexes(r = 2, thickness = 1, size = [40, 40]) {
 }
 
 /**
+ * Create a grill suitable for cutting out of a 2d shape.
+ * @param delta the width of the margin around the edges of the shape that will not be grilled
+ * @param thickness the wall thickness of the grill structure
+ * @param angle if set, rotate the grill pattern by this amount
+ * @param type the grill type, either "bar" or "hex"
+ * @param bounds the maximum size of the child being processed
+ * @param offset the offset from origin to center of the child
+ * @param center true if the child is centered on the origin
+ * @children 2d shape to install a grill into
+ */
+module grill_negative(delta = 3, thickness = 1, angle = 0, type = "bar", bounds = [50, 50], offset = [0, 0], gap = 1.5, r = 3) {
+    bounds2 = [max(bounds[0], bounds[1]), max(bounds[0], bounds[1])] * 1.4; // Handle worst case rotation angle
+    difference() {
+        offset(delta = -delta) children();
+        translate(offset) if (type == "bar") {
+            bars(thickness = thickness, gap = gap, angle = angle, size = bounds2);
+        } else {
+            hexes(thickness = thickness, r = r, size = bounds);
+        }
+    }
+}
+
+/**
  * Cut a grill out of a 2d shape.
  * @param delta the width of the margin around the edges of the shape that will not be grilled
  * @param thickness the wall thickness of the grill structure
@@ -495,17 +518,10 @@ module hexes(r = 2, thickness = 1, size = [40, 40]) {
  * @children 2d shape to install a grill into
  */
 module grill(delta = 3, thickness = 1, angle = 0, type = "bar", bounds = [50, 50], offset = [0, 0], gap = 1.5, r = 3) {
-    bounds2 = [max(bounds[0], bounds[1]), max(bounds[0], bounds[1])] * 1.4; // Handle worst case rotation angle
     difference() {
         children();
-        difference() {
-            offset(delta = -delta) children();
-            translate(offset) if (type == "bar") {
-                bars(thickness = thickness, gap = gap, angle = angle, size = bounds2);
-            } else {
-                hexes(thickness = thickness, r = r, size = bounds);
-            }
-        }
+        grill_negative(delta, thickness, angle, type, bounds, offset, gap, r)
+            children();
     }
 }
 
