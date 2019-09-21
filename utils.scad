@@ -337,16 +337,19 @@ module double_cone(h = 1, r = 1, faces = [true, true]) {
  * @param height total extruded height
  * @param chamfer height of chamfer
  * @param width (optional) width of chamfer, if different from chamfer height
- * @faces vector for whether to chamfer the bottom / top, respectively
+ * @param faces vector for whether to chamfer the bottom / top, respectively,
+ * or one of "bottom", "top", "both", or "none".
  * @children 2d shape to extrude
  */
 module chamfer_extrude(height = 10, chamfer = 1, width, faces = [true, true], convexity = 3) {
+    bottom = is_list(faces) ? faces[0] : (faces == "bottom" || faces == "both");
+    top = is_list(faces) ? faces[1] : (faces == "top" || faces == "both");
     chamfer_r = width == undef ? chamfer : width;
-    if (faces[0] || faces[1]) {
-        total_chamfer = (faces[0] ? chamfer : 0) + (faces[1] ? chamfer : 0);
-        translate([0, 0, faces[0] ? 0 : -chamfer]) minkowski() {
+    if (bottom || top) {
+        total_chamfer = (bottom ? chamfer : 0) + (top ? chamfer : 0);
+        translate([0, 0, bottom ? 0 : -chamfer]) minkowski() {
             linear_extrude(height = height - total_chamfer, convexity = convexity) offset(delta = -chamfer_r) children();
-            double_cone(h = chamfer, r = chamfer_r, faces = faces, $fs = 0.2);
+            double_cone(h = chamfer, r = chamfer_r, faces = [bottom, top], $fs = 0.2);
         }
     } else {
         linear_extrude(height = height, convexity = convexity) children();
@@ -588,7 +591,7 @@ module utildemo() {
     translate([5,5]) roundedcube(size=[40,15,10], r=3, $fn = 16);
     translate([5,25]) roundedcube3(size=[40,15,10], r=3, $fn = 16);
     translate([5,-15,0]) chamfer_extrude(height = 10, chamfer = 2, $fn = 16) square(size=[40,15]);
-    translate([45,-15,0]) chamfer_extrude(height = 10, chamfer = 2, faces = [true, false], $fn = 16) square(size=[40,15]);
+    translate([45,-15,0]) chamfer_extrude(height = 10, chamfer = 2, faces = "bottom", $fn = 16) square(size=[40,15]);
     translate([5,-35,0]) roundedsquare(size=[40,15], r=3);
     translate([-20,5,0]) slot();
     translate([-20,15,0]) wedge();
