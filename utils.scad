@@ -20,7 +20,7 @@ defLayer = 0.25; // default layer thickness
 tolerance = 0.5;
 
 /** Calculates length of hypotenuse according to pythagoras theorum */
-function pythag(x, y) = sqrt(x * x + y * y);
+function pythag(x, y) = sqrt(pow(x, 2) + pow(y, 2));
 
 /** Converts a vector to unit length */
 function unit_vector(v) = v / norm(v);
@@ -37,6 +37,14 @@ function sublist(list, from=0, to) =
     ? []
     : let(end = to==undef ? len(list) - 1 : to)
         [for(i = [from : end]) list[i]];
+
+/** From https://openscadsnippetpad.blogspot.com/2017/05/circle-defined-by-three-points.html */
+function circle_by_three_points(A, B, C) = let(
+  yD_b = C.y - B.y,  xD_b = C.x - B.x,  yD_a = B.y - A.y,
+  xD_a = B.x - A.x,  aS = yD_a / xD_a,  bS = yD_b / xD_b,
+  cex = (aS * bS * (A.y - C.y) + bS * (A.x + B.x) - aS * (B.x + C.x)) / (2 * (bS - aS)),
+  cey = -1 * (cex - (A.x + B.x) / 2) / aS + (A.y + B.y) / 2
+) [cex, cey];
 
 /** From the OpenSCAD wiki. */
 module fillet(r = 1) {
