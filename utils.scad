@@ -367,14 +367,45 @@ module chamfer_extrude(height = 10, chamfer = 1, width, faces = [true, true], co
 /**
  * Make a square which has rounded corners
  * @param size vector containing cube dimensions
- * @param r radius of rounding
+ * @param r radius of rounding, or vector containing radius of rounding
+ * for each corner (clockwise from lower left)
  * @param center whether to center the cube
  */
 module roundedsquare(size, r = 1, center = false) {
     //#square(size, center = center);
-    minkowski() {
-        translate(center ? [0, 0, 0] : [r, r]) square([size[0] - 2 * r, size[1] - 2 * r], center = center);
-        circle(r = r);
+    if (is_list(r)) {
+        r1 = len(r) > 0 ? r[0] : 0;
+        r2 = len(r) > 1 ? r[1] : 0;
+        r3 = len(r) > 2 ? r[2] : 0;
+        r4 = len(r) > 3 ? r[3] : 0;
+        minr = 0.1;
+        translate(center ? [-size.x / 2, -size.y / 2] : [0, 0]) hull() {
+            if (r1 < minr) {
+                translate([0, 0]) square([fudge, fudge]);
+            } else {
+                translate([r1, r1]) rotate([0, 0, 180]) wedge(r = r1, a = 90);
+            }
+            if (r2 < minr) {
+                translate([0, size.y - fudge]) square([fudge, fudge]);
+            } else {
+                translate([r2, size.y - r2]) rotate([0, 0, 90]) wedge(r = r2, a = 90);
+            }
+            if (r3 < minr) {
+                translate([size.x - fudge, size.y - fudge]) square([fudge, fudge]);
+            } else {
+                translate([size.x - r3, size.y - r3]) wedge(r = r3, a = 90);
+            }
+            if (r4 < minr) {
+                translate([size.x - fudge, 0]) square([fudge, fudge]);
+            } else {
+                translate([size.x - r4, r4]) rotate([0, 0, -90]) wedge(r = r4, a = 90);
+            }
+        }
+    } else {
+        minkowski() {
+            translate(center ? [0, 0, 0] : [r, r]) square([size[0] - 2 * r, size[1] - 2 * r], center = center);
+            circle(r = r);
+        }
     }
 }
 
