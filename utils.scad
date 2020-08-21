@@ -357,7 +357,7 @@ module chamfer_extrude(height = 10, chamfer = 1, width, faces = [true, true], co
         total_chamfer = (bottom ? chamfer : 0) + (top ? chamfer : 0);
         translate([0, 0, bottom ? 0 : -chamfer]) minkowski() {
             linear_extrude(height = height - total_chamfer, convexity = convexity) offset(delta = -chamfer_r) children();
-            double_cone(h = chamfer, r = chamfer_r, faces = [bottom, top], $fs = 0.2);
+            double_cone(h = chamfer, r = chamfer_r, faces = [bottom, top], $fs = $preview ? 1 : 0.2);
         }
     } else {
         linear_extrude(height = height, convexity = convexity) children();
