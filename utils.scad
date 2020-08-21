@@ -89,9 +89,13 @@ module test_polyhole(){
  */
 module orient(v, a = [0, 0, 1], roll = 0) {
     angle = acos((a * v) / (norm(a) *norm(v)));
-    rotate(a = angle, v = cross(a, v))
-        rotate([0, 0, roll])
+    if (angle == angle) { // Protect against nan
+        rotate(a = angle, v = cross(a, v))
+            rotate([0, 0, roll])
+            children();
+    } else {
         children();
+    }
 }
 
 /**
