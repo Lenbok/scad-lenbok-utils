@@ -510,16 +510,22 @@ module bars(thickness = 1.25, gap = 1.75, angle = 0, size = [40, 40]) {
 
 // Make a rectangular grid of hexes, centered around the origin, used by grill
 module hexes(r = 2, thickness = 1, size = [40, 40]) {
-    cellHeight = r * sin(60);
     cellSideLength = r * cos(60) * 2;
     horizThickness = r - cellSideLength / 2;
+    cellHeight = (r * sin(60)) * 2;
+    cellWidth = (r + horizThickness) * 2;
+    horizCells = ceil(size.x / 2 / cellWidth);
+    vertCells = ceil(size.y / 2 / cellHeight);
     //echo(str("r=",r," t=",thickness," ch=",cellHeight," cs=",cellSideLength," ht=",horizThickness));
+    //echo(str("horizCells=",horizCells," vertCells=",vertCells));
     difference() {
         square(size, center = true);
-        for (x = [-size[0] / 2 : (r + horizThickness) * 2: size[0] / 2 + r]) {
-            for (y = [-size[1] / 2 : cellHeight * 2 : size[1] / 2 + r]) {
+        for (i = [-horizCells : horizCells]) {
+            x = i * cellWidth;
+            for (j = [-vertCells : vertCells]) {
+                y = j * cellHeight;
                 translate([x, y]) circle(r = r - thickness/2, $fn=6);
-                translate([x + r + horizThickness, y + cellHeight]) circle(r = r - thickness/2, $fn=6);
+                translate([x + r + horizThickness, y + cellHeight/2]) circle(r = r - thickness/2, $fn=6);
             }
         }
     }
