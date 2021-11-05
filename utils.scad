@@ -140,7 +140,7 @@ module slice(v, thickness = 2) {
  */
 module remove_slice(v, thickness = 2, rejoin = false) {
     fudge = 0.01; // allow some overlap to avoid coincident faces
-    shift = rejoin ? unit_vector(v) * (thickness / 2 + fudge) : 0;
+    shift = rejoin ? unit_vector(v) * (thickness / 2 + fudge) : [0, 0, 0];
     v1 = v - unit_vector(v) * thickness / 2;
     v2 = v + unit_vector(v) * thickness / 2;
     s2 = v * v2 >= 0 ? 1 : -1;
@@ -191,12 +191,13 @@ module mendelBuildVolume() {
  * @children shapes to successively connect
  */
 module hullchain() {
-    for (i = [0:$children - 2]) {
-        hull() {
-            children(i);
-            children(i + 1);
-        }
+  assert($children > 1, "hullchain requires multiple children");
+  for (i = [0:$children - 2]) {
+    hull() {
+      children(i);
+      children(i + 1);
     }
+  }
 }
 
 /**
