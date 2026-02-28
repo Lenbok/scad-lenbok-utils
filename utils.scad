@@ -4,11 +4,10 @@
 // use<Lenbok_Utils/utils.scad>
 
 // Example improved resolution control
-//$fa=1;
-//$fs=5; // Use for fast rendering
-//$fs=1; // Uncomment for export
+//$fa = 1;
+//$fs = $preview ? 1 : 0.5;
 
-fudge = 0.02;
+eps = 0.005;
 
 // Some default screw characteristics - for M3 screws
 defScrewRad = 3.5/2;
@@ -139,8 +138,7 @@ module slice(v, thickness = 2) {
  * @param rejoin if true, re-join the parts
  */
 module remove_slice(v, thickness = 2, rejoin = false) {
-    fudge = 0.01; // allow some overlap to avoid coincident faces
-    shift = rejoin ? unit_vector(v) * (thickness / 2 + fudge) : [0, 0, 0];
+    shift = rejoin ? unit_vector(v) * (thickness / 2 + eps) : [0, 0, 0];
     v1 = v - unit_vector(v) * thickness / 2;
     v2 = v + unit_vector(v) * thickness / 2;
     s2 = v * v2 >= 0 ? 1 : -1;
@@ -154,8 +152,7 @@ module remove_slice(v, thickness = 2, rejoin = false) {
  * @param thickness the thickness of the slice to remove
  */
 module insert_slice(v, thickness = 2) {
-    fudge = 0.01; // allow some overlap to avoid coincident faces
-    shift = unit_vector(v) * (thickness / 2 - fudge);
+    shift = unit_vector(v) * (thickness / 2 - eps);
     translate(-shift) difference_plane(v, near = true) children();
     slice(v, thickness = thickness) children();
     translate(shift) difference_plane(v, near = false) children();
@@ -209,8 +206,8 @@ module hullchain() {
  */
 module countersink(r1=defScrewHeadRad, r2=defScrewRad, h1=defScrewHeadDepth, h2=defScrewDepth) {
     sinkheight=r1-r2;
-    polyhole(r = r1, h = h1 + fudge);
-    translate([0, 0, h1]) cylinder(r1 = r1, r2 = r2, h = sinkheight + fudge);
+    polyhole(r = r1, h = h1 + eps);
+    translate([0, 0, h1]) cylinder(r1 = r1, r2 = r2, h = sinkheight + eps);
     translate([0, 0, h1 + sinkheight]) polyhole(r = r2, h = h2 - sinkheight);
 }
 
@@ -218,11 +215,11 @@ module countersink(r1=defScrewHeadRad, r2=defScrewRad, h1=defScrewHeadDepth, h2=
  * Make an object suitable for creating a hole for a regular screw.
  * @param r1 head (widest) radius
  * @param r2 screw (narrowest) radius
- * @param h1 depth of screw 
- * @param h2 depth of screw head (i.e. total length = h1+h2)
+ * @param h1 depth of screw head
+ * @param h2 depth of screw (i.e. total length = h1+h2)
  * @param membrane set this to layer thickness to leave a one-layer membrane to be removed after printing
  */
-module bolthole(r1=defScrewHeadRad, r2=defScrewRad, h1=defScrewHeadDepth, h2=defScrewDepth, membrane=-fudge) {
+module bolthole(r1=defScrewHeadRad, r2=defScrewRad, h1=defScrewHeadDepth, h2=defScrewDepth, membrane=-eps) {
     polyhole(r = r1, h = h1 - membrane / 2);
     translate([0, 0, h1 + membrane / 2]) polyhole(r = r2, h = h2 - membrane / 2);
 }
@@ -233,7 +230,7 @@ module standoffpos(r1 = defScrewHeadRad, r2 = defScrewRad, r3 = 1.5, h1 = defScr
 }
 
 module standoffneg(r1 = defScrewHeadRad, r2 = defScrewRad, r3 = 1.5, h1 = defScrewHeadDepth, h2 = defScrewDepth) {
-    translate([0, 0, -fudge]) bolthole(r1 = r1, r2 = r2, h1 = h1 + fudge, h2 = h2 + fudge, membrane = defLayer);
+    translate([0, 0, -eps]) bolthole(r1 = r1, r2 = r2, h1 = h1 + eps, h2 = h2 + eps, membrane = defLayer);
 }
 
 /**
@@ -320,7 +317,10 @@ module roundedcube(size, r = 1, center = false) {
  * @param r radius of rounding
  * @param center whether to center the cube
  */
-module roundedcube3(size, r = 1, center = false) {
+module roundedcube3(size, r = 1, rz, center = false) {
+    rrz = rz == undef ? r : rz;
+    srz = rrz / r;
+
     //#cube(size, center = center);
     if (0) {
         minkowski() {
@@ -330,7 +330,7 @@ module roundedcube3(size, r = 1, center = false) {
     } else {
         translate(center ? 0 : [size[0]/2, size[1]/2, size[2]/2]) hull() {
             for(x=[-1, 1], y=[-1, 1], z=[-1,1]) {
-                translate([x* (size[0] / 2 - r), y * (size[1] / 2 - r), z * (size[2] / 2 - r)]) sphere(r = r);
+                translate([x* (size[0] / 2 - r), y * (size[1] / 2 - r), z * (size[2] / 2 - rrz)]) scale([1, 1, srz]) sphere(r = r);
             }
         }
     }
@@ -341,7 +341,7 @@ module double_cone(h = 1, r = 1, faces = [true, true]) {
         cylinder(r1 = 0, r2 = r, h = h);
     }
     if (faces[1]) {
-        translate([0, 0, h - fudge]) cylinder(r1 = r, r2 = 0, h = h);
+        translate([0, 0, h - eps]) cylinder(r1 = r, r2 = 0, h = h);
     }
 }
 
@@ -358,7 +358,7 @@ module chamfer_extrude(height = 10, chamfer = 1, width, faces = [true, true], co
     bottom = is_list(faces) ? faces[0] : (faces == "bottom" || faces == "both");
     top = is_list(faces) ? faces[1] : (faces == "top" || faces == "both");
     chamfer_r = width == undef ? chamfer : width;
-    if (bottom || top) {
+    if ((chamfer > 0) && (bottom || top)) {
         total_chamfer = (bottom ? chamfer : 0) + (top ? chamfer : 0);
         translate([0, 0, bottom ? 0 : -chamfer]) minkowski() {
             linear_extrude(height = height - total_chamfer, convexity = convexity) offset(delta = -chamfer_r) children();
@@ -386,22 +386,22 @@ module roundedsquare(size, r = 1, center = false) {
         minr = 0.1;
         translate(center ? [-size.x / 2, -size.y / 2] : [0, 0]) hull() {
             if (r1 < minr) {
-                translate([0, 0]) square([fudge, fudge]);
+                translate([0, 0]) square([eps, eps]);
             } else {
                 translate([r1, r1]) rotate([0, 0, 180]) wedge(r = r1, a = 90);
             }
             if (r2 < minr) {
-                translate([0, size.y - fudge]) square([fudge, fudge]);
+                translate([0, size.y - eps]) square([eps, eps]);
             } else {
                 translate([r2, size.y - r2]) rotate([0, 0, 90]) wedge(r = r2, a = 90);
             }
             if (r3 < minr) {
-                translate([size.x - fudge, size.y - fudge]) square([fudge, fudge]);
+                translate([size.x - eps, size.y - eps]) square([eps, eps]);
             } else {
                 translate([size.x - r3, size.y - r3]) wedge(r = r3, a = 90);
             }
             if (r4 < minr) {
-                translate([size.x - fudge, 0]) square([fudge, fudge]);
+                translate([size.x - eps, 0]) square([eps, eps]);
             } else {
                 translate([size.x - r4, r4]) rotate([0, 0, -90]) wedge(r = r4, a = 90);
             }
@@ -423,8 +423,8 @@ module wedge(r = 7, a = 225) {
     if (a <= 180) {
         difference() {
             circle(r = r);
-            translate([-fudge, -r-fudge]) square([r*2+0.1, r*2+0.1], center=true);
-            rotate([0,0,a]) translate([-fudge, r+fudge]) square([r*2+0.1, r*2+0.1], center=true);
+            translate([-eps, -r-eps]) square([r*2+0.1, r*2+0.1], center=true);
+            rotate([0,0,a]) translate([-eps, r+eps]) square([r*2+0.1, r*2+0.1], center=true);
         }
     }
     if (a > 180) {
@@ -461,14 +461,18 @@ module box(size = [10, 5, 5], thickness = 1) {
  * @param thickness wall thickness
  * @param a angle of ring, if only a segment of ring is required
  */
-module ring(r = 5, thickness = 1, a = 360) {
+module ring(r = 5, thickness = 1, a = 360, polyhole = true) {
     difference() {
         if (a < 360) {
             wedge(r = r, a = a);
         } else { 
             circle(r);
         }
-        polyhole2d(r - thickness);
+        if (polyhole) {
+          polyhole2d(r - thickness);
+        } else {
+          circle(r - thickness);
+        }
     }
 }
 
@@ -631,7 +635,7 @@ module clipbase(size, cliplength = 10, clipdepth = 3, r = 5) {
 module cliplid(size, thickness = 3, cliplength = 10, clipdepth = 3, r = 5) {
     difference() {
         translate([-thickness, -thickness]) roundedcube([size[0] + 2 * thickness, size[1] + 2 * thickness, size[2] + thickness], r = r);
-        translate([-tolerance, -tolerance, -fudge]) roundedcube([size[0] + tolerance * 2, size[1] + tolerance * 2, size[2]], r = r);
+        translate([-tolerance, -tolerance, -eps]) roundedcube([size[0] + tolerance * 2, size[1] + tolerance * 2, size[2]], r = r);
     }
     translate([-tolerance, -tolerance, 0]) boxclips([size[0] + tolerance * 2, size[1] + tolerance * 2], cliplength = cliplength, clipdepth = clipdepth);
 }
